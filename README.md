@@ -25,5 +25,8 @@ keras 3.6.0
 
 6. refference
 
-   Original speech to text LSTM model  
+   1) Trainning data set by mysel  
+   [huggingface.co/datasets/tosa-no-onchan/opp](https://huggingface.co/datasets/tosa-no-onchan/opp)  
+   
+   2) Original speech to text LSTM model  
    [Introduction to speech recognition with TensorFlow](https://pylessons.com/speech-recognition)  

@@ -23,8 +23,7 @@ keras 3.6.0
     
     $ python inferencModel.py
 
-6. refference
-
+6. refference  
    1) Trainning data set by mysel  
    [huggingface.co/datasets/tosa-no-onchan/opp](https://huggingface.co/datasets/tosa-no-onchan/opp)  
    

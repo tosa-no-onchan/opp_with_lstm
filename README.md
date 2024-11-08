@@ -22,3 +22,8 @@ keras 3.6.0
 5. predict
     
     $ python inferencModel.py
+
+6. refference
+
+   Original speech to text LSTM model  
+   [Introduction to speech recognition with TensorFlow](https://pylessons.com/speech-recognition)  

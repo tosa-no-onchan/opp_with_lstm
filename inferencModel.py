@@ -163,7 +163,8 @@ if __name__ == "__main__":
         for idx in labels:
             y=12+idx*2
             #if idx < len(idx_to_char):
-            if idx < 48:
+            #if idx < 48:
+            if idx < 49:
                 prediction += idx_to_char[idx]
                 if x < w:
                     cv2.circle(img,(x,y),2,(128),-1)

@@ -25,14 +25,17 @@ keras 3.6.0
     
     $ python inferencModel.py
 
-#### 6. refference  
+#### 6. Original Trainning Data generate  
+   [cource_classgen.cpp](https://github.com/tosa-no-onchan/opp_with_transformer_cpp)  
+
+#### 7. refference  
    1) Trainning data set by mysel  
    [huggingface.co/datasets/tosa-no-onchan/opp](https://huggingface.co/datasets/tosa-no-onchan/opp)  
    
    2) Original speech to text LSTM model  
    [Introduction to speech recognition with TensorFlow](https://pylessons.com/speech-recognition)
 
-#### 7. YouTube に動画をアップしました。  
+#### 8. YouTube に動画をアップしました。  
 
 [opp_with_lstm デモ](https://www.youtube.com/watch?v=PXCq2HicOwA)   
 [![alt設定](http://img.youtube.com/vi/PXCq2HicOwA/0.jpg)](https://www.youtube.com/watch?v=PXCq2HicOwA)

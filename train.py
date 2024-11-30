@@ -1,6 +1,8 @@
 import tensorflow as tf
+
 try: [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices("GPU")]
 except: pass
+
 
 import os
 import sys
@@ -12,6 +14,8 @@ from io import BytesIO
 
 import glob
 
+# add by nishi 2024.11.30
+os.environ["KERAS_BACKEND"] = "tensorflow"
 
 from mltu.preprocessors import WavReader
 
@@ -41,7 +45,6 @@ import librosa.display
 
 import random
 
-
 import keras
 
 from tools_mltu import *
@@ -52,8 +55,6 @@ import yaml
 from pathlib import Path
 
 from scipy.special import softmax
-
-
 from itertools import groupby
 
 
@@ -247,8 +248,8 @@ if __name__ == "__main__":
     #test_date="training-save0s"
     # 178 ?
     #epoch_num=10000
-    #epoch_num=178
-    epoch_num=1
+    epoch_num=178
+    #epoch_num=1
     test_date="test_opp"
 
     USE_TEST_DATA_OPP = True    # Obstacle Path Planning
@@ -502,9 +503,11 @@ if __name__ == "__main__":
     print('passed: #99')
 
     model.save(configs.model_path+'/a.model.keras',save_format='h5')
+
     #model.save(configs.model_path+'/a.model.h5',save_format='h5')
     #model.save(configs.model_path+'/a.model.keras')
     #model.save(configs.model_path+'/a.model.hdf5')
+    #model.save(configs.model_path+"/model.h5")
 
     print('passed: #100')
 
@@ -513,32 +516,55 @@ if __name__ == "__main__":
     input_signature = [tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype, name='digit')]
     tf2onnx.convert.from_keras(model,input_signature, output_path=configs.model_path+'/model.onnx',opset=17)
 
-
     print('passed: #101')
 
+    if False:
+        model.trainable = False
+        for l in model.layers:
+            print(l.name, l.trainable)
+            #model.get_layer('Layer_2').trainable = False
+            #l.trainable=False
+
+    # /home/nishi/kivy_env/lib/python3.10/site-packages/tensorflow/python/saved_model/save.py
     tf.saved_model.save(model,configs.model_path+'/a.model')
+
+    if True:
+        # cpu 版で保存できるか?
+        # https://stackoverflow.com/questions/59411681/tensorflow-2-how-to-switch-execution-from-gpu-to-cpu-and-back
+        # Run save on CPU
+        with tf.device('/cpu:0'):
+            tf.saved_model.save(model,configs.model_path+'/a_cpu.model')
+
+    # freeze を試す
+    if False:
+        #from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
+        from tensorflow.python.framework import convert_to_constants
+
+        f = model.to_save.get_concrete_function()
+        constantGraph = convert_to_constants.convert_variables_to_constants_v2(f)
+
+        constantGraph.graph.as_graph_def()
+        layers = [op.name for op in constantGraph.graph.get_operations()]
+        #print(layers)
+        #tf.io.write_graph(constantGraph.graph.as_graph_def(), <output_dir>, <output_file>) 
+        tf.io.write_graph(graph_or_graph_def=constantGraph.graph.as_graph_def(), logdir=configs.model_path, name="a.model_frozen.pb",as_text=False) 
+
     model_tf = tf.saved_model.load(configs.model_path+'/a.model')
 
     # $ python -m tf2onnx.convert --saved-model Models/test_opp/a.model --output Models/test_opp/a.onnx
-
-
 
     if False:
         from keras.saving import load_model
         objs_x={#"CTCloss":CTCloss(),
                 "CERMetric":CERMetric(configs.vocab),
                 }
-
-
         model = load_model(configs.model_path+'/a.model.keras',custom_objects=objs_x,safe_mode=False)
-
 
     #from keras.saving import save_model
 
     #keras.saving.save_model(model, filepath, overwrite=True, zipped=None, **kwargs)
     #save_model(model, configs.model_path+'/a.model.keras', overwrite=True,output_shape=(None,600,122))
     #save_model(model, configs.model_path+'/a.model.keras', overwrite=True)
-
 
     conf_adam = model.optimizer.get_config()
     #print("conf_adam:",conf_adam)
@@ -554,9 +580,6 @@ if __name__ == "__main__":
         # read test
         yaml_dict = yaml.safe_load(Path(configs.model_path+'/conf_adam.yaml').read_text())
         print("yaml_dict:",yaml_dict)
-
-
-
 
     #print(result)
 

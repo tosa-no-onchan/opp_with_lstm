@@ -3,6 +3,8 @@ from keras import layers
 from keras.models import Model
 
 from mltu.tensorflow.model_utils import residual_block, activation_layer
+# add by nishi 2024.11.13
+from keras.ops import expand_dims
 
 #from keras import backend as K
 
@@ -22,12 +24,14 @@ def activation_layer_my(layer, activation: str="relu", alpha: float=0.1) -> tf.T
         layer = layers.LeakyReLU(negative_slope=alpha)(layer)
     return layer
 
-
+'''
+Now, this class becomes error when loaded form keras.models.load_model()
+'''
 class MyModel(Model):
     def __init__(self,inputs,outputs):
         self.inputs=inputs
         self.outputs=outputs
-        super().__init__(self.inputs,self.outputs)
+        super().__init__(self,inputs,outputs)
 
     def _get_save_spec(self,dynamic_batch,keep_original_batch_siz=False):
         print("keep_original_batch_siz:",keep_original_batch_siz)
@@ -43,13 +47,22 @@ class MyModel(Model):
         #return [tf.TensorSpec(shape=[None,600,122], dtype=tf.float32)]
         return [tf.TensorSpec(shape=self.inputs[0]._shape, dtype=tf.float32)]
 
+    # for model freeze
+    # https://github.com/Unity-Technologies/barracuda-release/blob/release/0.3.2/Documentation~/Barracuda.md
+    #@tf.function(input_signature=[tf.TensorSpec(shape=[None,600,122], dtype=tf.float32)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=[1,600,122], dtype=tf.float32)])
+    def to_save(self,x):
+        return self(x)
+
 def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2):
-    import tensorflow as tf
     inputs = layers.Input(shape=input_dim, name="input")
     # expand dims to add channel dimension
     #input = layers.Lambda(lambda x: tf.expand_dims(x, axis=-1))(inputs)
     # changed by nishi 2024.11.4
-    input = layers.Lambda(lambda x: tf.expand_dims(x, axis=-1), output_shape=(input_dim[0], input_dim[1],1),dtype=tf.float32)(inputs)
+    #input = layers.Lambda(lambda x: tf.expand_dims(x, axis=-1), output_shape=(input_dim[0], input_dim[1],1),dtype=tf.float32)(inputs)
+    # changed by nishi 2024.11.30
+    input = expand_dims(inputs,2)
+
     # Convolution layer 1
     x = layers.Conv2D(filters=32, kernel_size=[11, 41], strides=[2, 2], padding="same", use_bias=False)(input)
     x = layers.BatchNormalization()(x)
@@ -83,4 +96,11 @@ def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2):
 
     model = Model(inputs=inputs, outputs=output)
     #model = MyModel(inputs=inputs, outputs=output)
+
+    # https://github.com/Unity-Technologies/barracuda-release/blob/release/0.3.2/Documentation~/Barracuda.md
+    #@tf.function(input_signature=[tf.TensorSpec(shape=[<input_shape>], dtype=tf.float32)])
+    #@tf.function(input_signature=[tf.TensorSpec(shape=input_dim, dtype=tf.float32)])
+    #def to_save(x):
+    #    return model(x)
+
     return model

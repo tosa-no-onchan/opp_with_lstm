@@ -3,6 +3,9 @@ import sys
 import typing
 import numpy as np
 
+# add by nishi 2024.11.30
+os.environ["KERAS_BACKEND"] = "tensorflow"
+
 import tensorflow as tf
 
 from mltu.inferenceModel import OnnxInferenceModel
@@ -14,13 +17,14 @@ from mltu.utils.text_utils import ctc_decoder
 from configs import ModelConfigs
 
 import keras
+#from tensorflow import keras 
 
 #from keras.models import load_model
 #from tensorflow.keras.models import load_model
 
 #keras.saving.load_model
-from keras.saving import load_model
-from keras.config import enable_unsafe_deserialization
+#from keras.saving import load_model
+#from keras.config import enable_unsafe_deserialization
 from mltu.tensorflow.metrics import CERMetric
 
 from mltu.tensorflow.losses import CTCloss
@@ -35,6 +39,10 @@ from scipy.special import softmax
 import cv2
 
 
+# Set CPU as available physical device
+my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
+
 class WavToTextModel(OnnxInferenceModel):
     def __init__(self, char_list: typing.Union[str, list], *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,13 +50,30 @@ class WavToTextModel(OnnxInferenceModel):
 
     def predict(self, data: np.ndarray):
         data_pred = np.expand_dims(data, axis=0)
-
         preds = self.model.run(None, {self.input_name: data_pred})[0]
-
         text = ctc_decoder(preds, self.char_list)[0]
-
         return text
 
+#----------------
+# https://github.com/leimao/Frozen-Graph-TensorFlow/blob/master/TensorFlow_v2/utils.py
+#----------------
+def wrap_frozen_graph(graph_def, inputs, outputs, print_graph=False):
+    def _imports_graph_def():
+        tf.compat.v1.import_graph_def(graph_def, name="")
+
+    wrapped_import = tf.compat.v1.wrap_function(_imports_graph_def, [])
+    import_graph = wrapped_import.graph
+    if print_graph == True:
+        print("-" * 50)
+        print("Frozen model layers: ")
+        layers = [op.name for op in import_graph.get_operations()]
+        for layer in layers:
+            print(layer)
+        print("-" * 50)
+
+    return wrapped_import.prune(
+        tf.nest.map_structure(import_graph.as_graph_element, inputs),
+        tf.nest.map_structure(import_graph.as_graph_element, outputs))
 
 if __name__ == "__main__":
     import pandas as pd
@@ -56,49 +81,70 @@ if __name__ == "__main__":
     from mltu.configs import BaseModelConfigs
 
     test_date="test_opp"
-
     model_dir="Models/"+test_date
     #configs = BaseModelConfigs.load(model_dir+"/configs.yaml")
-
     configs = ModelConfigs.load("Models/"+test_date+"/configs.yaml")
 
     print("configs.model_path:",configs.model_path)
-
     if os.path.exists("./work")==False:
         os.mkdir("./work")
 
     #sys.exit(0)
 
-    LOAD_1=False
-    LOAD_2=False
-    LOAD_3=True
+    LOAD_2=False        # load keras saved model  ->  OK
+    LOAD_3=False        # load tf saved model   -> OK
+    LOAD_4=True        # load frozen model       -> OK
 
-    if LOAD_1==True:
-        print("LOAD_1")
-        model = WavToTextModel(model_path=configs.model_path, char_list=configs.vocab, force_cpu=False)
-
+    # use Keras saved model
     if LOAD_2==True:
+        # load keras saved model
         print("LOAD_2")
-        loss_fn=CTCloss()
-        cer_m=CERMetric(configs.vocab)
-
+        #loss_fn=CTCloss()
+        #cer_m=CERMetric(configs.vocab)
         objs_x={
                "tf":tf,
                 #"CTCloss":CTCloss(),
                 #"CERMetric":CERMetric(configs.vocab),
                 }
+        #model = keras.models.load_model(configs.model_path+'/a.model.keras',custom_objects={'tf':tf},safe_mode=False)
+        #model = keras.models.load_model(configs.model_path+'/a.model.keras',custom_objects=objs_x,safe_mode=False)
+        # OK
+        model = keras.models.load_model(configs.model_path+'/a.model.keras',safe_mode=False)
 
-        #model = load_model(configs.model_path+'/a.model.keras',safe_mode=False)
-        #model = load_model(configs.model_path+'/a.model.keras',custom_objects=objs_x,safe_mode=False)
-        #model = load_model(configs.model_path+'/a.model.hdf5',custom_objects=objs_x,safe_mode=False)
-        model = keras.models.load_model(configs.model_path+'/a.model.keras',custom_objects={'tf':tf},safe_mode=False)
-
-        #loaded_model = keras.model.load_model('model_name.h5')
-
+    # use TF saved model
     if LOAD_3==True:
         print("LOAD_3")
+        # /home/nishi/kivy_env/lib/python3.10/site-packages/tensorflow/python/saved_model/load.py
         model = tf.saved_model.load(configs.model_path+'/a.model')
         model_f = model.signatures["serving_default"]
+
+    # use Frozen model
+    if LOAD_4==True:
+        # frozen model を試す。
+        print("LOAD_4")
+        # https://github.com/leimao/Frozen-Graph-TensorFlow/blob/master/TensorFlow_v2/example_1.py
+
+        # Load frozen graph using TensorFlow 1.x functions
+        with tf.io.gfile.GFile(configs.model_path+"/a.model_frozen.pb", "rb") as f:
+            graph_def = tf.compat.v1.GraphDef()
+            loaded = graph_def.ParseFromString(f.read())
+
+        # Wrap frozen graph to ConcreteFunctions
+        frozen_func = wrap_frozen_graph(graph_def=graph_def,
+                                        inputs=["x:0"],
+                                        outputs=["Identity:0"],
+                                        print_graph=False)
+
+        print("-" * 50)
+        print("Frozen model inputs: ")
+        print(frozen_func.inputs)
+        # [<tf.Tensor 'x:0' shape=(1, 600, 122) dtype=float32>]
+        print("Frozen model outputs: ")
+        print(frozen_func.outputs)
+        # [<tf.Tensor 'Identity:0' shape=(1, 300, 53) dtype=float32>]
+
+        #for s in frozen_func.__dict__:
+        #    print(s)
 
     #print("model.__dict__:",model.__dict__)
     #sys.exit(0)
@@ -134,10 +180,17 @@ if __name__ == "__main__":
     print("configs.max_spectrogram_length:",configs.max_spectrogram_length)
     idx_to_char = configs.vocab
 
+    DISP_F=True
+
     for img_path, label in dataset_val:
         print("img_path:",img_path)
         dt = op_reader.get_opp_data(img_path)
         img=dt.T
+
+        if DISP_F==True:
+            cv2.imshow('Source image', img)
+            cv2.waitKey(300)
+
         w=dt.shape[0]
         #print("dt.shape:",dt.shape)
         #print("type(dt):",type(dt))
@@ -147,23 +200,33 @@ if __name__ == "__main__":
         #print("type(dt_in):",type(dt_in))
         #print("dt_in.dtype:",dt_in.dtype)
         if LOAD_2==True:
+            print("go predict2")
             text = model.predict(dt_in)
         if LOAD_3==True:
             text = model_f(inputs=dt_in)
+        if LOAD_4==True:
+            print("go predict4")
+            # Get predictions for test images
+            #frozen_graph_predictions = frozen_func(x=tf.constant(test_images))[0]
+            text = frozen_func(x=tf.constant(dt_in))[0]
 
-        #print(text)
-        # {'output_0': <tf.Tensor: shape=(1, 300, 53), dtype=float32, numpy=
-        preds=text['output_0']
+        if LOAD_4==True or LOAD_2==True:
+            preds=text
+        else:
+            print('text:',text)
+            # {'output_0': <tf.Tensor: shape=(1, 300, 53), dtype=float32, numpy=
+            preds=text['output_0']
+
         prob = softmax(preds[0], -1)
         scores, labels =prob[..., :-1].max(-1), prob[..., :-1].argmax(-1)
 
         #https://www.tech-teacher.jp/blog/python-opencv/
         prediction = ""
-        x=0
+        #x=0
+        x=2
         for idx in labels:
             y=12+idx*2
             #if idx < len(idx_to_char):
-            #if idx < 48:
             if idx < 49:
                 prediction += idx_to_char[idx]
                 if x < w:
@@ -173,8 +236,8 @@ if __name__ == "__main__":
         cv2.imwrite('./work/v_'+img_path, img)
 
         print("prediction:",prediction)
-        if False:
-            cv2.imshow('Color image', img)
+        if DISP_F==True:
+            cv2.imshow('Detect image', img)
             cv2.waitKey(0)
 
 

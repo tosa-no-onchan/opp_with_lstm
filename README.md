@@ -13,9 +13,9 @@ keras 3.6.0
 #### 2. download  
    $ git clone https://github.com/tosa-no-onchan/opp_with_lstm.git
    
-   pre trained model extract  
+   pre trained frozen model extract  
    $ cd opp_with_lstm/Models/test_opp  
-   $ unzip a.model.zip 
+   $ unzip a.model_frozen.pb.zip     ---> a.model_frozen.pb   
 
 #### 4. 学習。
     

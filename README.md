@@ -1,9 +1,10 @@
 # opp_with_lstm  
+Obstacl Path Planning with Lstm - ROS2
 ##### [ROS2 自作 Turtlebot3 による 草刈りロボット開発。#9 LSTM で経路計画をする。](http://www.netosa.com/blog/2024/11/ros2-turtlebot3-9-lstm.html)  
 ![inferencModel result](https://github.com/tosa-no-onchan/opp_with_lstm/blob/main/work/v_245.jpg)  
 ![inferencModel result2](https://github.com/tosa-no-onchan/opp_with_lstm/blob/main/work/v_6.jpg)  
 
-#### 1. 開発環境  
+#### 1. PC environment  
 PC: Ubuntu Mate 22.04  
 Python 3.10.12  
 virtual_env  
@@ -17,7 +18,7 @@ keras 3.7.0
    $ cd opp_with_lstm/Models/test_opp  
    $ unzip a.model_frozen.pb.zip     ---> a.model_frozen.pb   
 
-#### 4. 学習。
+#### 4. Trainning
     
     $ python train.py
 

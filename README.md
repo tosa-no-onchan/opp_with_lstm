@@ -8,7 +8,7 @@ PC: Ubuntu Mate 22.04
 Python 3.10.12  
 virtual_env  
 tensorflow 2.16.2  
-keras 3.6.0  
+keras 3.7.0  
 
 #### 2. download  
    $ git clone https://github.com/tosa-no-onchan/opp_with_lstm.git

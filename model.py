@@ -24,14 +24,15 @@ def activation_layer_my(layer, activation: str="relu", alpha: float=0.1) -> tf.T
         layer = layers.LeakyReLU(negative_slope=alpha)(layer)
     return layer
 
+
 '''
 Now, this class becomes error when loaded form keras.models.load_model()
 '''
 class MyModel(Model):
-    def __init__(self,inputs,outputs):
+    def __init__(self,inputs,outputs,**kwargs):
         self.inputs=inputs
         self.outputs=outputs
-        super().__init__(self,inputs,outputs)
+        super().__init__(inputs,outputs,**kwargs)
 
     def _get_save_spec(self,dynamic_batch,keep_original_batch_siz=False):
         print("keep_original_batch_siz:",keep_original_batch_siz)
@@ -54,7 +55,7 @@ class MyModel(Model):
     def to_save(self,x):
         return self(x)
 
-def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2):
+def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2,use_cudnn='auto'):
     inputs = layers.Input(shape=input_dim, name="input")
     # expand dims to add channel dimension
     #input = layers.Lambda(lambda x: tf.expand_dims(x, axis=-1))(inputs)
@@ -77,15 +78,17 @@ def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2):
     # Reshape the resulted volume to feed the RNNs layers
     x = layers.Reshape((-1, x.shape[-2] * x.shape[-1]))(x)
     # RNN layers
-    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(x)
+    #print(">>>  train_model(): passed #5")
+    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True,use_cudnn=use_cudnn))(x)        #  keras.layers.LSTM -> use CudnnRNNV3 
     x = layers.Dropout(dropout)(x)
-    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(x)
+    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True,use_cudnn=use_cudnn))(x)
     x = layers.Dropout(dropout)(x)
-    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(x)
+    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True,use_cudnn=use_cudnn))(x)
     x = layers.Dropout(dropout)(x)
-    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(x)
+    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True,use_cudnn=use_cudnn))(x)
     x = layers.Dropout(dropout)(x)
-    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True))(x)
+    x = layers.Bidirectional(layers.LSTM(128, return_sequences=True,use_cudnn=use_cudnn))(x)
+
     # Dense layer
     x = layers.Dense(256)(x)
     x = activation_layer(x, activation="leaky_relu")

@@ -3,7 +3,6 @@ import tensorflow as tf
 try: [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices("GPU")]
 except: pass
 
-
 import os
 import sys
 import tarfile
@@ -13,10 +12,10 @@ from urllib.request import urlopen
 from io import BytesIO
 
 import glob
-
 # add by nishi 2024.11.30
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
+#/home/nishi/kivy_env/lib/python3.10/site-packages/keras/src/backend/config.py
 from mltu.preprocessors import WavReader
 
 # mltu 1.0.12  -> 1.2.5
@@ -24,7 +23,6 @@ from mltu.tensorflow.dataProvider import DataProvider
 from mltu.transformers import LabelIndexer, LabelPadding, SpectrogramPadding
 #from mltu.tensorflow.losses import CTCloss
 from losses import CTCloss
-
 
 #from mltu.tensorflow.callbacks import Model2onnx, TrainLogger
 from mltu.tensorflow.callbacks import TrainLogger
@@ -44,7 +42,6 @@ import librosa
 import librosa.display
 
 import random
-
 import keras
 
 from tools_mltu import *
@@ -56,7 +53,6 @@ from pathlib import Path
 
 from scipy.special import softmax
 from itertools import groupby
-
 
 """
 ## Callbacks to display predictions
@@ -130,7 +126,6 @@ class DisplayOutputs(keras.callbacks.Callback):
             #print("labels:",labels)
 
             print("len(labels):",len(labels))
-
             for c in target[i, :]:
                 if c < len(self.idx_to_char):
                     target_text += self.idx_to_char[c]
@@ -219,8 +214,6 @@ class CustomSchedule(keras.optimizers.schedules.LearningRateSchedule):
         #return dict(list(base_config.items()) + list(config.items()))
         return config
 
-
-
 # https://analytics-note.xyz/machine-learning/keras-learningratescheduler/
 def lr_schedul(epoch):
     x = 0.0005
@@ -237,7 +230,6 @@ lr_decay = LearningRateScheduler(
 )
 
 vectorizer = VectorizeChar()
-
 
 if __name__ == "__main__":
     from mltu.configs import BaseModelConfigs
@@ -279,9 +271,7 @@ if __name__ == "__main__":
     print('initial_epoch:',initial_epoch)
     checkpoint_path = checkpoint_dir+"/cp-{epoch:04d}.weights.h5"
 
-
     if CONT_F==False:
-
         if USE_TEST_DATA_OPP == True:
             imgs = glob("{}/*.yaml".format(configs.opp_path), recursive=False)
             datasetx=[]
@@ -369,7 +359,6 @@ if __name__ == "__main__":
             val_ds=val_data_provider
     #else:
 
-
     max_target_len = configs.max_text_length
     #data = get_data(wavs, id_to_text, max_target_len)
 
@@ -386,17 +375,13 @@ if __name__ == "__main__":
             idx_to_char, target_start_token_idx=0
         )  # set the arguments as per vocabulary index for '<' and '>'
 
-
     print("configs.model_path:",configs.model_path)
-
 
     # tensorboard 
     # https://teratail.com/questions/97nyrumr5iix6d
     tb_callback = TensorBoard(checkpoint_dir+"/logs", update_freq=1)
 
-
     print("passed:#3 ")
-
     #sys.exit(0)
 
     initial_lr=lr_schedul(initial_epoch)
@@ -405,7 +390,8 @@ if __name__ == "__main__":
     model = train_model(
         input_dim = configs.input_shape,
         output_dim = len(configs.vocab),
-        dropout=0.5
+        dropout=0.5,
+        use_cudnn=False     # add by nishi 2024.12.3
     )
 
     # add by nishi 2024.12.2
@@ -433,12 +419,12 @@ if __name__ == "__main__":
             #cer_m,
             #WERMetric(vocabulary=configs.vocab)
             ],
-        run_eagerly=False
+        run_eagerly=False,
+        jit_compile=False       # add by nishi 2024.12.3
     )
 
     #model.summary(line_length=110)
     #sys.exit(0)
-
 
     # Define callbacks
     #earlystopper = EarlyStopping(monitor="val_CER", patience=20, verbose=1, mode="min")
@@ -482,9 +468,7 @@ if __name__ == "__main__":
         mode="min")
 
     print('initial_epoch:',initial_epoch)
-
     #sys.exit(0)
-
 
     # Train the model
     history = model.fit(
@@ -501,18 +485,15 @@ if __name__ == "__main__":
     )
 
     print('passed: #99')
-
     model.save(configs.model_path+'/a.model.keras',save_format='h5')
 
     #model.save(configs.model_path+'/a.model.h5',save_format='h5')
     #model.save(configs.model_path+'/a.model.keras')
     #model.save(configs.model_path+'/a.model.hdf5')
     #model.save(configs.model_path+"/model.h5")
-
     print('passed: #100')
 
     import tf2onnx
-
     input_signature = [tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype, name='digit')]
     tf2onnx.convert.from_keras(model,input_signature, output_path=configs.model_path+'/model.onnx',opset=17)
 
@@ -552,7 +533,6 @@ if __name__ == "__main__":
     model_tf = tf.saved_model.load(configs.model_path+'/a.model')
 
     # $ python -m tf2onnx.convert --saved-model Models/test_opp/a.model --output Models/test_opp/a.onnx
-
     if False:
         from keras.saving import load_model
         objs_x={#"CTCloss":CTCloss(),

@@ -1,3 +1,4 @@
+# opp_with_lstm/inferencModel.py
 import os
 import sys
 import typing
@@ -8,7 +9,7 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 
 import tensorflow as tf
 
-from mltu.inferenceModel import OnnxInferenceModel
+#from mltu.inferenceModel import OnnxInferenceModel
 from mltu.preprocessors import WavReader
 from mltu.utils.text_utils import ctc_decoder
 
@@ -38,21 +39,12 @@ from tools_mltu import *
 from scipy.special import softmax
 import cv2
 
+import onnxruntime as ort
+#import onnx
 
 # Set CPU as available physical device
-my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
-tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
-
-class WavToTextModel(OnnxInferenceModel):
-    def __init__(self, char_list: typing.Union[str, list], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.char_list = char_list
-
-    def predict(self, data: np.ndarray):
-        data_pred = np.expand_dims(data, axis=0)
-        preds = self.model.run(None, {self.input_name: data_pred})[0]
-        text = ctc_decoder(preds, self.char_list)[0]
-        return text
+#my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+#tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
 
 #----------------
 # https://github.com/leimao/Frozen-Graph-TensorFlow/blob/master/TensorFlow_v2/utils.py
@@ -91,9 +83,21 @@ if __name__ == "__main__":
 
     #sys.exit(0)
 
+    LOAD_1=True    # ONNX
     LOAD_2=False        # load keras saved model  ->  OK
     LOAD_3=False        # load tf saved model   -> OK
-    LOAD_4=True        # load frozen model       -> OK
+    LOAD_4=False        # load frozen model       -> OK
+
+    if LOAD_1==True:
+        print("LOAD_1")
+        force_cpu = True
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if ort.get_device() == "GPU" and not force_cpu else ["CPUExecutionProvider"]
+        sess = ort.InferenceSession("./a.model.onnx", providers=providers)
+
+        print("sess.get_inputs()[0]:",sess.get_inputs()[0])
+        # sess.get_inputs()[0]: NodeArg(name='source:0', type='tensor(float)', shape=[1, 600, 122])
+        print("sess.get_outputs()[0]:",sess.get_outputs()[0])
+        # sess.get_outputs()[0]: NodeArg(name='Identity:0', type='tensor(int32)', shape=[1, 150])
 
     # use Keras saved model
     if LOAD_2==True:
@@ -147,7 +151,7 @@ if __name__ == "__main__":
         #    print(s)
 
     #print("model.__dict__:",model.__dict__)
-    #sys.exit(0)
+    sys.exit(0)
 
     #df = pd.read_csv("Models/05_sound_to_text/202306191412/val.csv").values.tolist()
     dataset_val = pd.read_csv(model_dir+"/val.csv").values.tolist()
@@ -199,13 +203,15 @@ if __name__ == "__main__":
         #print("dt_in.shape:",dt_in.shape)
         #print("type(dt_in):",type(dt_in))
         #print("dt_in.dtype:",dt_in.dtype)
+        print("go pred!!")
+
+        if LOAD_1==True:
+            text = sess.run(["Identity:0"], {'source:0': dt_in})[0]
         if LOAD_2==True:
-            print("go predict2")
             text = model.predict(dt_in)
         if LOAD_3==True:
             text = model_f(inputs=dt_in)
         if LOAD_4==True:
-            print("go predict4")
             # Get predictions for test images
             #frozen_graph_predictions = frozen_func(x=tf.constant(test_images))[0]
             text = frozen_func(x=tf.constant(dt_in))[0]

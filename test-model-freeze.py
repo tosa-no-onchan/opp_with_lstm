@@ -4,6 +4,7 @@ test-model-freeze.py
 https://jimmy-shen.medium.com/how-to-freeze-graph-in-tensorflow-2-x-3a3238c70f19
 
 https://www.tensorflow.org/guide/saved_model?hl=ja
+
 """
 
 import os
@@ -28,11 +29,11 @@ output_model = "Models/test_opp/a.model.freeze.pb"
 #converter = tf.lite.TFLiteConverter.from_saved_model(input_model)
 #tflite_quant_model = converter.convert()
 
-LOAD_3=True             # use Keras saved model --> OK
+LOAD_3=False             # use Keras saved model --> OK
                         #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
 LOAD_4=False            # use TF saved model 
                         #  ,but trained model with model.py use model = MyModel(inputs=inputs, outputs=output)
-LOAD_5=False            # use TF saved model  -->
+LOAD_5=True            # use TF saved model  -->  OK
                         #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
                         # and 
                         # Frozen model inputs: [<tf.Tensor 'inputs:0' shape=(None, 600, 122) dtype=float32>]
@@ -41,7 +42,7 @@ LOAD_5=False            # use TF saved model  -->
 base_dir='Models/test_opp'
 
 if LOAD_3==True:
-        # Keras model
+        # Keras saved model
         # https://www.tensorflow.org/lite/convert/concrete_function?hl=ja
         print("LOAD_3")
         model = keras.models.load_model(configs.model_path+'/a.model.keras',safe_mode=False)
@@ -80,7 +81,8 @@ if LOAD_4==True:
         # /home/nishi/kivy_env/lib/python3.10/site-packages/tensorflow/python/saved_model/load.py
         model = tf.saved_model.load(configs.model_path+'/a.model')
 
-        # https://github.com/Unity-Technologies/barracuda-release/blob/release/0.3.2/Documentation~/Barracuda.md
+        # https://github.com/leimao/Frozen-Graph-TensorFlow/tree/master/TensorFlow_v2
+        #  example_1.py
 
         #@tf.function(input_signature=[tf.TensorSpec(shape=configs.input_shape, dtype=tf.float32)])
         #def to_save(x):
@@ -105,9 +107,14 @@ if LOAD_4==True:
         tf.io.write_graph(graph_or_graph_def=constantGraph.graph, logdir=configs.model_path, name="a.model_frozen.pb",as_text=False) 
 
 
-if LOAD_5==True:        # test now  ->  OK
+if LOAD_5==True:        
+        # Tensorflow saved model ->  OK
         print("LOAD_5")
         # https://www.tensorflow.org/lite/convert/concrete_function?hl=ja
+
+        # https://github.com/leimao/Frozen-Graph-TensorFlow/tree/master/TensorFlow_v2
+        #  example_1.py
+
         model = tf.saved_model.load(configs.model_path+'/a.model')
         concrete_func = model.signatures[
                 tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY]

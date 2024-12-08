@@ -49,7 +49,7 @@ import onnxruntime as ort
 #----------------
 # https://github.com/leimao/Frozen-Graph-TensorFlow/blob/master/TensorFlow_v2/utils.py
 #----------------
-def wrap_frozen_graph(graph_def, inputs, outputs, print_graph=False):
+def wrap_frozen_graph(graph_def, inputs, outputs, print_graph=False,print_ops=False):
     def _imports_graph_def():
         tf.compat.v1.import_graph_def(graph_def, name="")
 
@@ -61,6 +61,16 @@ def wrap_frozen_graph(graph_def, inputs, outputs, print_graph=False):
         layers = [op.name for op in import_graph.get_operations()]
         for layer in layers:
             print(layer)
+        print("-" * 50)
+
+    if print_ops ==True:
+        print("-" * 50)
+        print("Frozen model layers: ")
+        layers = [op.name for op in import_graph.get_operations()]
+        ops = import_graph.get_operations()
+        print(ops[0])
+        print("Input layer: ", layers[0])
+        print("Output layer: ", layers[-1])
         print("-" * 50)
 
     return wrapped_import.prune(
@@ -83,10 +93,10 @@ if __name__ == "__main__":
 
     #sys.exit(0)
 
-    LOAD_1=True    # ONNX
+    LOAD_1=False    # ONNX
     LOAD_2=False        # load keras saved model  ->  OK
     LOAD_3=False        # load tf saved model   -> OK
-    LOAD_4=False        # load frozen model       -> OK
+    LOAD_4=True        # load frozen model       -> OK
 
     if LOAD_1==True:
         print("LOAD_1")
@@ -135,9 +145,10 @@ if __name__ == "__main__":
 
         # Wrap frozen graph to ConcreteFunctions
         frozen_func = wrap_frozen_graph(graph_def=graph_def,
-                                        inputs=["x:0"],
+                                        inputs=["x:0"],        # keras frozen model
+                                        #inputs=["inputs:0"],    # tf frozen model
                                         outputs=["Identity:0"],
-                                        print_graph=False)
+                                        print_ops=False)
 
         print("-" * 50)
         print("Frozen model inputs: ")
@@ -151,7 +162,7 @@ if __name__ == "__main__":
         #    print(s)
 
     #print("model.__dict__:",model.__dict__)
-    sys.exit(0)
+    #sys.exit(0)
 
     #df = pd.read_csv("Models/05_sound_to_text/202306191412/val.csv").values.tolist()
     dataset_val = pd.read_csv(model_dir+"/val.csv").values.tolist()
@@ -214,7 +225,8 @@ if __name__ == "__main__":
         if LOAD_4==True:
             # Get predictions for test images
             #frozen_graph_predictions = frozen_func(x=tf.constant(test_images))[0]
-            text = frozen_func(x=tf.constant(dt_in))[0]
+            text = frozen_func(x=tf.constant(dt_in))[0]        # kears frozen model
+            #text = frozen_func(inputs=tf.constant(dt_in))[0]    # tf frozen model
 
         if LOAD_4==True or LOAD_2==True:
             preds=text

@@ -1,6 +1,7 @@
 import tensorflow as tf
 from keras import layers
-from keras.models import Model
+#from keras.models import Model
+from keras import Model
 
 from mltu.tensorflow.model_utils import residual_block, activation_layer
 # add by nishi 2024.11.13
@@ -32,7 +33,7 @@ class MyModel(Model):
     def __init__(self,inputs,outputs,**kwargs):
         self.inputs=inputs
         self.outputs=outputs
-        super().__init__(inputs,outputs,**kwargs)
+        super().__init__(inputs=inputs,outputs=outputs,**kwargs)
 
     def _get_save_spec(self,dynamic_batch,keep_original_batch_siz=False):
         print("keep_original_batch_siz:",keep_original_batch_siz)
@@ -54,6 +55,17 @@ class MyModel(Model):
     @tf.function(input_signature=[tf.TensorSpec(shape=[1,600,122], dtype=tf.float32)])
     def to_save(self,x):
         return self(x)
+
+    ### Start 追加されたコード
+    def get_config(self):
+        config = {
+            "inputs": self.inputs,
+            "outputs": self.outputs,
+        }
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+    ###  End  
+
 
 def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2,use_cudnn='auto'):
     inputs = layers.Input(shape=input_dim, name="input")
@@ -98,7 +110,7 @@ def train_model(input_dim, output_dim, activation="leaky_relu", dropout=0.2,use_
     output = layers.Dense(output_dim + 1, activation="softmax")(x)
 
     model = Model(inputs=inputs, outputs=output)
-    #model = MyModel(inputs=inputs, outputs=output)
+    #model = MyModel(inputs, output)
 
     # https://github.com/Unity-Technologies/barracuda-release/blob/release/0.3.2/Documentation~/Barracuda.md
     #@tf.function(input_signature=[tf.TensorSpec(shape=[<input_shape>], dtype=tf.float32)])

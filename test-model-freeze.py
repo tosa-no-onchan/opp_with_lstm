@@ -29,22 +29,33 @@ output_model = "Models/test_opp/a.model.freeze.pb"
 #converter = tf.lite.TFLiteConverter.from_saved_model(input_model)
 #tflite_quant_model = converter.convert()
 
-LOAD_3=False             # use Keras saved model --> OK
-                        #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
-LOAD_4=False            # use TF saved model 
-                        #  ,but trained model with model.py use model = MyModel(inputs=inputs, outputs=output)
-LOAD_5=True            # use TF saved model  -->  OK
-                        #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
-                        # and 
-                        # Frozen model inputs: [<tf.Tensor 'inputs:0' shape=(None, 600, 122) dtype=float32>]
-                        # Frozen model outputs: [<tf.Tensor 'Identity:0' shape=(None, 300, 53) dtype=float32>]
+LOAD_3=True         # use Keras saved model --> OK
+                    #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
+                    # Frozen model inputs: [<tf.Tensor 'x:0' shape=(1, 600, 122) dtype=float32>]
+                    # Frozen model outputs: [<tf.Tensor 'Identity:0' shape=(1, 300, 53) dtype=float32>]
+LOAD_4=False        # use TF saved model 
+                    #  ,but trained model with model.py use model = MyModel(inputs=inputs, outputs=output)
+
+LOAD_5=False        # use TF saved model  -->  OK
+                    #  ,but trained model with model.py use model = Model(inputs=inputs, outputs=output)
+                    # and 
+                    # Frozen model inputs: [<tf.Tensor 'inputs:0' shape=(None, 600, 122) dtype=float32>]
+                    # Frozen model outputs: [<tf.Tensor 'Identity:0' shape=(None, 300, 53) dtype=float32>]
 
 base_dir='Models/test_opp'
 
 if LOAD_3==True:
-        # Keras saved model
+        # こちらは、 cudnnRNNV3 を取り除けます。
+        # Keras saved model with cudnn
+        # You can train model with cudnn.
+        # This converter can remove cudnnRNNV3 from trained model.
+        # a.model_frozen.pb and a.model.tflite are not include cudnnRNNV3
         # https://www.tensorflow.org/lite/convert/concrete_function?hl=ja
         print("LOAD_3")
+
+        # disble cudnn
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
         model = keras.models.load_model(configs.model_path+'/a.model.keras',safe_mode=False)
 
         # 具象関数を Keras モデルから取得
@@ -66,6 +77,7 @@ if LOAD_3==True:
         print(constantGraph.outputs)
         # [<tf.Tensor 'Identity:0' shape=(None, 300, 53) dtype=float32>]
 
+        print(">>> saved a.model_frozen.pb")
         tf.io.write_graph(graph_or_graph_def=constantGraph.graph, logdir=configs.model_path, name="a.model_frozen.pb",as_text=False) 
 
         # Get frozen ConcreteFunction    
@@ -75,6 +87,16 @@ if LOAD_3==True:
         #concrete_func.inputs[0].set_shape([1, 600, 122])
         #converter = tf.lite.TFLiteConverter.from_concrete_functions([concrete_func])
         #tflite_model = converter.convert()
+
+        print(">>> start tflite convert")
+        converter = tf.lite.TFLiteConverter.from_concrete_functions([constantGraph])
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+        tflite_model = converter.convert()
+
+        print(">>> saved a.model.tflite")
+        with open('a.model.tflite', 'wb') as f:
+            f.write(tflite_model)
+
 
 if LOAD_4==True:
         print("LOAD_4")

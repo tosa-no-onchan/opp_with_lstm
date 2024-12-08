@@ -391,7 +391,7 @@ if __name__ == "__main__":
         input_dim = configs.input_shape,
         output_dim = len(configs.vocab),
         dropout=0.5,
-        use_cudnn=False     # add by nishi 2024.12.3
+        #use_cudnn=False     # add by nishi 2024.12.3
     )
 
     # add by nishi 2024.12.2
@@ -508,6 +508,10 @@ if __name__ == "__main__":
 
     # /home/nishi/kivy_env/lib/python3.10/site-packages/tensorflow/python/saved_model/save.py
     tf.saved_model.save(model,configs.model_path+'/a.model')
+
+    # test
+    # https://keras.io/guides/migrating_to_keras_3/#loading-a-tf-savedmodel
+    model.export(configs.model_path+"/export.model")
 
     if True:
         # cpu 版で保存できるか?

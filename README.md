@@ -56,4 +56,6 @@ tensorflow 2.18.0
 [opp_with_lstm デモ](https://www.youtube.com/watch?v=PXCq2HicOwA)   
 [![alt設定](http://img.youtube.com/vi/PXCq2HicOwA/0.jpg)](https://www.youtube.com/watch?v=PXCq2HicOwA)
 
+#### 10. Run with Ros2 Robot  
 
+[turtlebot3_navi_my for Ros2 humble r6](https://github.com/tosa-no-onchan/turtlebot3_navi_my)

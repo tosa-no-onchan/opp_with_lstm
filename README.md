@@ -13,6 +13,7 @@ keras 3.7.0
 
 or  
 Ubuntu Mate 24.04  
+virtual_env  
 tensorflow 2.18.0  
 
 #### 2. download  

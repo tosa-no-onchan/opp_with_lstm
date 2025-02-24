@@ -26,6 +26,11 @@ tensorflow 2.18.0
     
     $ python train.py
 
+#### 4.1 Trainning with Tensorflow 2.18.0
+    
+    $ export WRAPT_DISABLE_EXTENSIONS=true  
+    $ python train.py
+
 #### 5. Freeze  
 
     $ python test-model-freeze.py  

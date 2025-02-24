@@ -58,4 +58,5 @@ tensorflow 2.18.0
 
 #### 10. Run with Ros2 Robot  
 
-[turtlebot3_navi_my for Ros2 humble r6](https://github.com/tosa-no-onchan/turtlebot3_navi_my)
+[turtlebot3_navi_my for Ros2 humble r6](https://github.com/tosa-no-onchan/turtlebot3_navi_my)  
+2025.1.3 Version r6 AutoMower で、Obstacle path planner with Lstm tflite を使えるようにしました。

@@ -43,6 +43,11 @@ tensorflow 2.18.0
 
 #### 7. Original Trainning Data generate  
    [cource_classgen.cpp](https://github.com/tosa-no-onchan/opp_with_transformer_cpp)  
+   
+   test data of mine  
+   
+   [test data](https://huggingface.co/datasets/tosa-no-onchan/opp)
+
 
 #### 8. refference  
    1) Trainning data set by mysel  

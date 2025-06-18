@@ -10,11 +10,13 @@ Python 3.10.12
 virtual_env  
 tensorflow 2.16.2  
 keras 3.7.0  
+mltu  
 
 or  
 Ubuntu Mate 24.04  
 virtual_env  
 tensorflow 2.18.0  
+mltu  
 
 #### 2. download  
    $ git clone https://github.com/tosa-no-onchan/opp_with_lstm.git
